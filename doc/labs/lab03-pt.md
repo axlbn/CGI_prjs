@@ -67,6 +67,48 @@ sob o ponteiro, sem desvio nem espelhamento - se isso acontecer, o
 suspeito mais provável é uma inversão do eixo dos y em falta ou trocada em
 `to_clip_space`.
 
+**Uma alternativa que vale a pena experimentar: um buffer de tamanho
+fixo.** Chamar `gl.bufferData()` a cada clique não se limita a reenviar os
+dados - pede ao driver um novo bloco de memória da GPU de cada vez,
+deitando fora o anterior, já que o array passado tem um tamanho diferente
+em cada chamada. Uma alternativa é decidir antecipadamente um número
+máximo de pontos e alocar um buffer com esse tamanho exactamente uma vez,
+no `setup()`, antes de existir qualquer ponto:
+
+```js
+const MAX_POINTS = 1000;
+const FLOATS_PER_POINT = 2;     // um vec2
+
+// Reserva espaço para MAX_POINTS pontos, sem lá escrever ainda nenhum dado.
+// DYNAMIC_DRAW é uma indicação ao driver de que o conteúdo deste buffer vai
+// ser substituído com frequência, ao contrário dos buffers STATIC_DRAW que
+// tem usado até agora.
+gl.bindBuffer(gl.ARRAY_BUFFER, aBuffer);
+gl.bufferData(gl.ARRAY_BUFFER, MAX_POINTS * FLOATS_PER_POINT * 4, gl.DYNAMIC_DRAW);
+```
+
+(o `* 4` final são os bytes por float). A partir daqui, `update_buffer()`
+nunca redimensiona nada - escreve apenas o único ponto novo, no offset em
+bytes onde esse ponto cai, deixando intacto tudo o que já está no buffer:
+
+```js
+function update_buffer() {
+    const offset = (points.length - 1) * FLOATS_PER_POINT * 4;
+    gl.bindBuffer(gl.ARRAY_BUFFER, aBuffer);
+    gl.bufferSubData(gl.ARRAY_BUFFER, offset, flatten([points[points.length - 1]]));
+}
+```
+
+A chamada de desenho não muda: o buffer pode ter espaço para `MAX_POINTS`,
+mas `gl.drawArrays(gl.POINTS, 0, points.length)` só pede os
+`points.length` que estão de facto preenchidos. A troca é o espelho da
+primeira abordagem: deixa de haver alocação a cada clique, mas passa a
+haver um limite rígido - chegar a `MAX_POINTS` obriga a recusar novos
+pontos ou a decidir o que fazer com eles, uma escolha que `bufferData()`
+nunca o forçou a tomar. Experimente as duas, no mesmo exercício, e veja por
+si que produzem resultados idênticos no écran - a diferença está
+inteiramente no que acontece na GPU, não no que se vê.
+
 ## ex13 - Triângulos com cores interpoladas
 
 Copie a sua solução do ex12 para uma nova pasta chamada my-ex13. Em vez de

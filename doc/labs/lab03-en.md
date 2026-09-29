@@ -67,6 +67,48 @@ Click around the canvas a few times and confirm a point appears exactly
 under the pointer, not offset or mirrored - if it is, the most likely
 culprit is a missing or backwards y-flip in `to_clip_space`.
 
+**An alternative worth trying: a fixed-size buffer.** Calling
+`gl.bufferData()` on every click does not just resend the data - it asks
+the driver for a new block of GPU memory each time, throwing the old one
+away, since the array passed in is a different size on every call. An
+alternative is to decide on a maximum number of points up front and
+allocate a buffer that size exactly once, in `setup()`, before any point
+exists:
+
+```js
+const MAX_POINTS = 1000;
+const FLOATS_PER_POINT = 2;     // a vec2
+
+// Reserve room for MAX_POINTS points, without writing any data into it yet.
+// DYNAMIC_DRAW is a hint to the driver that this buffer's contents will be
+// replaced often, unlike the STATIC_DRAW buffers you have used until now.
+gl.bindBuffer(gl.ARRAY_BUFFER, aBuffer);
+gl.bufferData(gl.ARRAY_BUFFER, MAX_POINTS * FLOATS_PER_POINT * 4, gl.DYNAMIC_DRAW);
+```
+
+(the trailing `* 4` is bytes per float). From then on, `update_buffer()`
+never resizes anything - it writes only the one new point, at the byte
+offset that point falls at, leaving everything already in the buffer
+untouched:
+
+```js
+function update_buffer() {
+    const offset = (points.length - 1) * FLOATS_PER_POINT * 4;
+    gl.bindBuffer(gl.ARRAY_BUFFER, aBuffer);
+    gl.bufferSubData(gl.ARRAY_BUFFER, offset, flatten([points[points.length - 1]]));
+}
+```
+
+The draw call does not change: the buffer may have room for `MAX_POINTS`,
+but `gl.drawArrays(gl.POINTS, 0, points.length)` only ever asks for the
+`points.length` of them that are actually filled in. The trade-off is the
+mirror image of the first approach: no more allocating on every click, but
+also a hard ceiling - reaching `MAX_POINTS` means either refusing further
+points or deciding what to do about it, a choice `bufferData()` never
+forced you to make. Try both, on the same exercise, and see for yourself
+that they produce identical results on screen - the difference is entirely
+in what happens on the GPU, not in what you see.
+
 ## ex13 - Triangles with interpolated colours
 
 Copy your ex12 solution to a new folder called my-ex13. Instead of
