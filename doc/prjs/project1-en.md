@@ -1,5 +1,5 @@
 # Project 1 - Voronoi Diagrams
-Draft 0.1 (Sep 26, 2026)
+Version 1.0 (Oct 5, 2026)
 
 ![Euclidean, Manhattan and Chebyshev diagrams over the same sites](./assets/prj1/voronoi-metrics.png)
 
