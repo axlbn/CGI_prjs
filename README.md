@@ -12,6 +12,7 @@
 -  [Aula prática 8](/doc/labs/lab08-pt.md)/[Lab session 8](/doc/labs/lab08-en.md)
 -  [Aula prática 9](/doc/labs/lab09-pt.md)/[Lab session 9](/doc/labs/lab09-en.md)
 -  [Aula prática 10](/doc/labs/lab10-pt.md)/[Lab session 10](/doc/labs/lab10-en.md)
+-  [Aula prática 11](/doc/labs/lab11-pt.md)/[Lab session 11](/doc/labs/lab11-en.md)
 
 Material is published as each session is taught, so links become
 available during the semester.
