@@ -6,7 +6,7 @@ In this session, we will develop a small application that allows you to view a s
 
 The user can add to the scene, whose structure is linear (a simple list of objects), an object chosen from a set of available primitive objects.
 
-The skeleton of the application is provided and can be obtained from the [repository](https://gitlab.com/CGI-Code/cgi-25-26) that we have been using.
+The skeleton of the application is provided and can be obtained from the [repository](https://gitlab.com/CGI-Code/cgi-26-27) that we have been using.
 
 If you notice, when the application is launched, we only see a cube, which does not change because the application interface is not currently doing anything useful.
 

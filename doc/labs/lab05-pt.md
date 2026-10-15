@@ -6,7 +6,7 @@ Nesta sessão vamos desenvolver uma pequena aplicação que permite visualizar u
 
 O utilizador pode adicionar à cena, cuja estrutura é linear (uma lista simples de objetos) um objecto escolhido de entre um conjunto de objetos primitivos disponíveis.
 
-O esqueleto da aplicação é fornecido e pode ser obtido no [repositório](https://gitlab.com/CGI-Code/cgi-25-26) que temos vindo a utilizar.
+O esqueleto da aplicação é fornecido e pode ser obtido no [repositório](https://gitlab.com/CGI-Code/cgi-26-27) que temos vindo a utilizar.
 
 Se reparar, quando a aplicação é lançada apenas visualizamos um cubo, o qual não sofre qualquer alteração pois a interface da aplicação não está, de momento, a fazer nada de útil.
 
