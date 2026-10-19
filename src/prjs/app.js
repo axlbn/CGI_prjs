@@ -11,9 +11,9 @@ let quad_vao;       // the quad covering the whole viewport
 
 let sites_program;
 let sites_vao;
-let sites_position_location;
+let sites_positions_location;
 let sites = []; // array of {x:x,y:y} 
-
+let sites_colors_location;
 
 let draggingSite = -1;
 let mouseDown = false;
@@ -28,11 +28,38 @@ let startCameraY=0;
 
 let zoom = 1.0;
 
+let mouseX=0;
+let mouseY=0;
 // ---------------------------------------------------------------------------
 // Input. The event listeners are already set up in setup_input(); fill in
 // these functions. Mouse positions are in canvas pixels, with (0, 0) at the
 // top-left corner and y growing downwards.
 // ---------------------------------------------------------------------------
+
+function generate_random_color(){
+    return [
+        Math.random(),
+        Math.random(),
+        Math.random()
+    ]
+}
+
+function find_nearest_site(x, y) {
+    let nearest = -1;
+    let min_distance = 10;
+    for (let i = 0; i < sites.length; i++) {
+        const dx = x - (sites[i].x * zoom + cameraX);
+        const dy = y - (sites[i].y * zoom + cameraY);
+
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < min_distance) {
+            nearest = i;
+            min_distance = distance;
+        }
+    }
+    return nearest;
+}
 
 
 function on_mouse_down(x, y) {
@@ -42,20 +69,13 @@ function on_mouse_down(x, y) {
     starting_y=y;
     mouseDown=true;
     moved=false;
-    draggingSite = -1;
-    for( let i =0;i<sites.length;i++){
-        const dx = x-(sites[i].x * zoom+cameraX);
-        const dy = y-(sites[i].y* zoom+cameraY);
-        const distance = Math.sqrt(dx*dx+dy*dy);
-        if(distance<10){
-            draggingSite =i;
-            break;
-        }
-    }
+    draggingSite = find_nearest_site(x,y);
 }
 
 
 function on_mouse_move(x, y) {
+    mouseX=x;
+    mouseY=y;
     if(!mouseDown)return;
     if(Math.hypot(x-starting_x,y-starting_y)>5){
         moved = true;
@@ -76,7 +96,8 @@ function on_mouse_up(x, y) {
         sites.push(
             {
                 x:(x-cameraX)/zoom,
-                y:(y-cameraY)/zoom
+                y:(y-cameraY)/zoom,
+                color: generate_random_color()
             }
         );
     }
@@ -94,6 +115,13 @@ function on_wheel(x, y, dy) {
     cameraY = y - worldY * zoom;
 }
 
+function remove_site() {
+    let removingSite = find_nearest_site(mouseX, mouseY);
+
+    if (removingSite !== -1) {
+        sites.splice(removingSite, 1);
+    }
+}
 function on_key(key) {
     switch (key) {
         case '1':       // Euclidean distance
@@ -105,6 +133,7 @@ function on_key(key) {
         case 'b':       // toggle cell borders
             break;
         case 'x':       // remove the site under the pointer
+            remove_site();
             break;
         case 'm':       // switch rendering technique / split view
             break;
@@ -140,9 +169,13 @@ function setup(shaders) {
     quad_program = buildProgramFromSources(gl, shaders["quad.vert"], shaders["quad.frag"]);
     sites_program = buildProgramFromSources(gl, shaders["sites.vert"], shaders["sites.frag"]);
     sites_vao = gl.createVertexArray();
-    sites_position_location = gl.getUniformLocation(
-    sites_program,
-    "u_position"
+    sites_positions_location = gl.getUniformLocation(
+        sites_program,
+        "u_positions[0]"
+    );
+    sites_colors_location = gl.getUniformLocation(
+        sites_program,
+        "u_colors[0]"
     );
     // A quad covering the whole viewport, as two triangles: its corners are
     // the corners of clip space, from (-1, -1) to (1, 1)
@@ -193,21 +226,39 @@ function animate(timestamp) {
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
     // --- SITES ---
-    gl.useProgram(sites_program);
+   
+
+    const positions = new Float32Array(sites.length * 2);
+    const colors = new Float32Array(sites.length *3);
+
     
-    gl.bindVertexArray(sites_vao);
-    for(const site of sites){
-        const screeX = site.x * zoom+cameraX;
-        const screenY = site.y* zoom+cameraY;
+    for( let i =0;i<sites.length;i++){
+        const site = sites[i];
+        //world -> screens
+        const screenX= site.x *zoom+cameraX;
+        const screenY= site.y *zoom+cameraY;
+        // screen -> webGL
+        const xGL = 2 * screenX / canvas.width - 1;
+        const yGL = 1 - 2 * screenY / canvas.height;
 
-        const xGL = (2 * screeX / canvas.width) - 1;
-        const yGL = 1 - (2 * screenY/ canvas.height);
-        gl.uniform2f(sites_position_location,xGL,yGL);
-        gl.drawArrays(gl.POINTS, 0, 1);
+        positions[i*2]=xGL;
+        positions[i*2+1]=yGL;
 
+        colors[i*3]=site.color[0];
+        colors[i*3+1]=site.color[1];
+        colors[i*3+2]=site.color[2];
+        
     }
+    gl.useProgram(sites_program);
+    gl.bindVertexArray(sites_vao);
     
+    if(sites.length>0){
+        gl.uniform2fv(sites_positions_location, positions);
+        gl.uniform3fv(sites_colors_location, colors);
 
+        // Disegna tutti i siti in una chiamata
+        gl.drawArrays(gl.POINTS, 0, sites.length);
+    }
 
 
     // Ripristina lo stato
