@@ -15,6 +15,13 @@ let sites_positions_location;
 let sites = []; // array of {x:x,y:y} 
 let sites_colors_location;
 
+let quad_positions_location;
+let quad_colors_location;
+let quad_zoom_location;
+let quad_camera_location;
+let quad_n_sites_location;
+let quad_resolution_location;
+
 let draggingSite = -1;
 let mouseDown = false;
 let starting_x=0;
@@ -177,6 +184,33 @@ function setup(shaders) {
         sites_program,
         "u_colors[0]"
     );
+
+    // --- quad uniform ---
+    quad_positions_location = gl.getUniformLocation(
+        quad_program,
+        "u_site_positions[0]"
+    )
+    quad_colors_location = gl.getUniformLocation(
+        quad_program,
+        "u_site_colors[0]"
+    )
+    quad_zoom_location = gl.getUniformLocation(
+        quad_program,
+        "u_zoom"
+    )
+    quad_camera_location = gl.getUniformLocation(
+        quad_program,
+        "u_camera"
+    )
+    quad_n_sites_location = gl.getUniformLocation(
+        quad_program,
+        "u_n_sites"
+    )
+    quad_resolution_location = gl.getUniformLocation(
+        quad_program,
+        "u_resolution"
+    )
+    
     // A quad covering the whole viewport, as two triangles: its corners are
     // the corners of clip space, from (-1, -1) to (1, 1)
     const corners = new Float32Array([
@@ -214,13 +248,46 @@ function animate(timestamp) {
     gl.clear(gl.COLOR_BUFFER_BIT);
 
     // --- QUAD ---
+    const colors = new Float32Array(sites.length *3);
+
+    const worldPositions = new Float32Array(sites.length * 2);
+
+    for (let i = 0; i < sites.length; i++) {
+        worldPositions[i * 2] = sites[i].x;
+        worldPositions[i * 2 + 1] = sites[i].y;
+
+        colors[i * 3] = sites[i].color[0];
+        colors[i * 3 + 1] = sites[i].color[1];
+        colors[i * 3 + 2] = sites[i].color[2];
+    }
+
     gl.useProgram(quad_program);
 
     gl.uniform2f(
-        gl.getUniformLocation(quad_program, "u_resolution"),
+        quad_resolution_location,
         canvas.width,
         canvas.height
     );
+    gl.uniform2f(
+        quad_camera_location,
+        cameraX,
+        cameraY
+    )
+    gl.uniform1i(quad_n_sites_location,
+        sites.length
+    )
+    gl.uniform1f(quad_zoom_location, zoom);
+    if (sites.length > 0) {
+        gl.uniform2fv(
+            quad_positions_location,
+            worldPositions
+        );
+
+        gl.uniform3fv(
+            quad_colors_location,
+            colors
+        );
+    }
 
     gl.bindVertexArray(quad_vao);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
@@ -228,8 +295,7 @@ function animate(timestamp) {
     // --- SITES ---
    
 
-    const positions = new Float32Array(sites.length * 2);
-    const colors = new Float32Array(sites.length *3);
+    const screen_positions = new Float32Array(sites.length * 2);
 
     
     for( let i =0;i<sites.length;i++){
@@ -241,19 +307,16 @@ function animate(timestamp) {
         const xGL = 2 * screenX / canvas.width - 1;
         const yGL = 1 - 2 * screenY / canvas.height;
 
-        positions[i*2]=xGL;
-        positions[i*2+1]=yGL;
+        screen_positions[i*2]=xGL;
+        screen_positions[i*2+1]=yGL;
 
-        colors[i*3]=site.color[0];
-        colors[i*3+1]=site.color[1];
-        colors[i*3+2]=site.color[2];
         
     }
     gl.useProgram(sites_program);
     gl.bindVertexArray(sites_vao);
     
     if(sites.length>0){
-        gl.uniform2fv(sites_positions_location, positions);
+        gl.uniform2fv(sites_positions_location, screen_positions);
         gl.uniform3fv(sites_colors_location, colors);
 
         // Disegna tutti i siti in una chiamata
