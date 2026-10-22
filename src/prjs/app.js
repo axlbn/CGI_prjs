@@ -21,6 +21,9 @@ let quad_zoom_location;
 let quad_camera_location;
 let quad_n_sites_location;
 let quad_resolution_location;
+let quad_metric_location;
+
+let metric =0;//euclidian default
 
 let draggingSite = -1;
 let mouseDown = false;
@@ -37,6 +40,9 @@ let zoom = 1.0;
 
 let mouseX=0;
 let mouseY=0;
+
+let showBorders = false;
+let quad_borders_location;
 // ---------------------------------------------------------------------------
 // Input. The event listeners are already set up in setup_input(); fill in
 // these functions. Mouse positions are in canvas pixels, with (0, 0) at the
@@ -132,12 +138,16 @@ function remove_site() {
 function on_key(key) {
     switch (key) {
         case '1':       // Euclidean distance
+            metric=0;
             break;
         case '2':       // Manhattan distance
+            metric=1;
             break;
         case '3':       // Chebyshev distance
+            metric=2;
             break;
         case 'b':       // toggle cell borders
+             showBorders = !showBorders;
             break;
         case 'x':       // remove the site under the pointer
             remove_site();
@@ -210,7 +220,14 @@ function setup(shaders) {
         quad_program,
         "u_resolution"
     )
-    
+    quad_metric_location = gl.getUniformLocation(
+        quad_program,
+        "u_metric"
+    )
+    quad_borders_location = gl.getUniformLocation(
+        quad_program,
+        "u_show_borders"
+    );
     // A quad covering the whole viewport, as two triangles: its corners are
     // the corners of clip space, from (-1, -1) to (1, 1)
     const corners = new Float32Array([
@@ -277,6 +294,10 @@ function animate(timestamp) {
         sites.length
     )
     gl.uniform1f(quad_zoom_location, zoom);
+    gl.uniform1i(
+        quad_borders_location,
+        showBorders ? 1 : 0
+    );
     if (sites.length > 0) {
         gl.uniform2fv(
             quad_positions_location,
@@ -288,7 +309,7 @@ function animate(timestamp) {
             colors
         );
     }
-
+    gl.uniform1i(quad_metric_location,metric);
     gl.bindVertexArray(quad_vao);
     gl.drawArrays(gl.TRIANGLES, 0, 6);
 
